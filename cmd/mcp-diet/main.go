@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strings"
 	"syscall"
 
@@ -24,7 +25,20 @@ import (
 )
 
 // version is overridden at build time with -ldflags "-X main.version=v0.1.0".
-var version = "dev"
+// When the binary comes from `go install ...@v1.2.3` instead, no ldflags are
+// applied, so fall back to the module version the toolchain recorded.
+var version = ""
+
+func init() {
+	if version != "" {
+		return
+	}
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		version = info.Main.Version
+		return
+	}
+	version = "dev"
+}
 
 const usage = `mcp-diet %s — token-pruning proxy for MCP servers
 
