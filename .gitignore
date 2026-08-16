@@ -1,0 +1,8 @@
+/bin/
+/dist/
+*.test
+*.out
+coverage.html
+
+# local pitch/marketing notes, not part of the library
+PITCH.md

@@ -1,0 +1,22 @@
+{
+  "topN": 8,
+  "maxDescriptionChars": 100,
+  "minTools": 6,
+  "pinned": ["fs_read_file", "github_*"],
+  "dropBelow": 0,
+  "preserveOrder": true,
+  "revealSteps": 12,
+  "recencyHalfLife": 4,
+  "contextTerms": 256,
+  "termDecay": 0.72,
+  "maxNodes": 512,
+  "maxEdgesPerNode": 32,
+  "weights": {
+    "successor": 1.0,
+    "successor2": 0.35,
+    "recency": 0.45,
+    "frequency": 0.3,
+    "lexical": 0.55,
+    "revealed": 2.0
+  }
+}

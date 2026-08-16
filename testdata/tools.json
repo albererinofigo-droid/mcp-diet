@@ -1,0 +1,458 @@
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "tools": [
+      {
+        "name": "fs_read_file",
+        "description": "Read the complete contents of a file from the file system. Handles various text encodings and provides detailed error messages if the file cannot be read. Use this tool when you need to examine the contents of a single file.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string", "description": "Absolute or workspace-relative path of the file to read." },
+            "encoding": { "type": "string", "description": "Character encoding used to decode the file.", "enum": ["utf-8", "utf-16", "latin-1", "ascii"], "default": "utf-8" },
+            "offset": { "type": "integer", "description": "Zero-based line number to start reading from.", "minimum": 0 },
+            "limit": { "type": "integer", "description": "Maximum number of lines to return.", "minimum": 1, "maximum": 100000 }
+          },
+          "required": ["path"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "fs_write_file",
+        "description": "Create a new file or completely overwrite an existing file with new content. Use with caution as it will overwrite existing files without warning. Handles text content with proper encoding.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string", "description": "Destination path of the file to write." },
+            "content": { "type": "string", "description": "Full textual content to write into the file." },
+            "encoding": { "type": "string", "description": "Character encoding used to encode the file.", "enum": ["utf-8", "utf-16", "latin-1"], "default": "utf-8" },
+            "createDirectories": { "type": "boolean", "description": "Create any missing parent directories.", "default": false },
+            "mode": { "type": "string", "description": "POSIX file mode expressed in octal, for example 0644." }
+          },
+          "required": ["path", "content"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "fs_edit_file",
+        "description": "Make selective edits to a text file using exact string replacement. Each edit replaces one occurrence of oldText with newText. Returns a git-style diff of the applied changes.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string", "description": "Path of the file to edit." },
+            "edits": {
+              "type": "array",
+              "description": "Ordered list of replacements to apply.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "oldText": { "type": "string", "description": "Exact text to search for, including indentation." },
+                  "newText": { "type": "string", "description": "Text that replaces oldText." },
+                  "replaceAll": { "type": "boolean", "description": "Replace every occurrence instead of the first.", "default": false }
+                },
+                "required": ["oldText", "newText"]
+              }
+            },
+            "dryRun": { "type": "boolean", "description": "Return the diff without writing the file.", "default": false }
+          },
+          "required": ["path", "edits"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "fs_list_directory",
+        "description": "List the contents of a directory, optionally recursing into subdirectories. Entries are annotated with their type, size and modification time.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string", "description": "Directory to list." },
+            "recursive": { "type": "boolean", "description": "Recurse into subdirectories.", "default": false },
+            "maxDepth": { "type": "integer", "description": "Maximum recursion depth.", "minimum": 1, "maximum": 32, "default": 4 },
+            "includeHidden": { "type": "boolean", "description": "Include dotfiles in the result.", "default": false },
+            "pattern": { "type": "string", "description": "Optional glob filter such as **/*.go." }
+          },
+          "required": ["path"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "fs_search_files",
+        "description": "Recursively search for files whose contents match a regular expression. Returns matching paths with line numbers and the matched line, sorted by relevance.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "root": { "type": "string", "description": "Directory to search under." },
+            "query": { "type": "string", "description": "Regular expression to match against file contents." },
+            "glob": { "type": "string", "description": "Restrict the search to files matching this glob." },
+            "caseSensitive": { "type": "boolean", "description": "Perform a case sensitive search.", "default": false },
+            "maxResults": { "type": "integer", "description": "Maximum number of matches to return.", "minimum": 1, "maximum": 1000, "default": 100 },
+            "contextLines": { "type": "integer", "description": "Number of surrounding lines to include.", "minimum": 0, "maximum": 20, "default": 0 }
+          },
+          "required": ["root", "query"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "fs_move_file",
+        "description": "Move or rename a file or directory. Fails if the destination already exists unless overwrite is enabled.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": { "type": "string", "description": "Path of the file or directory to move." },
+            "destination": { "type": "string", "description": "New path." },
+            "overwrite": { "type": "boolean", "description": "Replace the destination if it exists.", "default": false }
+          },
+          "required": ["source", "destination"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "fs_delete_path",
+        "description": "Delete a file or directory. Directories are only removed when recursive is set. This operation cannot be undone.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string", "description": "Path to delete." },
+            "recursive": { "type": "boolean", "description": "Delete directory contents recursively.", "default": false },
+            "force": { "type": "boolean", "description": "Ignore missing paths instead of failing.", "default": false }
+          },
+          "required": ["path"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "git_status",
+        "description": "Show the working tree status of a git repository, including staged, unstaged and untracked files along with the current branch and upstream tracking information.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "repo": { "type": "string", "description": "Path to the repository root." },
+            "untracked": { "type": "boolean", "description": "Include untracked files.", "default": true },
+            "porcelain": { "type": "boolean", "description": "Return machine readable output.", "default": true }
+          },
+          "required": ["repo"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "git_diff",
+        "description": "Show changes between commits, the working tree and the index. Supports limiting the diff to specific paths and controlling the amount of context.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "repo": { "type": "string", "description": "Path to the repository root." },
+            "revision": { "type": "string", "description": "Revision or revision range such as HEAD~3..HEAD." },
+            "staged": { "type": "boolean", "description": "Diff the index against HEAD.", "default": false },
+            "paths": { "type": "array", "description": "Restrict the diff to these paths.", "items": { "type": "string" } },
+            "unified": { "type": "integer", "description": "Lines of context around each hunk.", "minimum": 0, "maximum": 50, "default": 3 }
+          },
+          "required": ["repo"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "git_commit",
+        "description": "Record staged changes to the repository with a commit message. Optionally stage every tracked modification first and sign the resulting commit.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "repo": { "type": "string", "description": "Path to the repository root." },
+            "message": { "type": "string", "description": "Commit message." },
+            "all": { "type": "boolean", "description": "Stage every tracked modification before committing.", "default": false },
+            "amend": { "type": "boolean", "description": "Amend the previous commit.", "default": false },
+            "signoff": { "type": "boolean", "description": "Append a Signed-off-by trailer.", "default": false },
+            "author": { "type": "string", "description": "Override the author in the form Name <email>." }
+          },
+          "required": ["repo", "message"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "git_log",
+        "description": "Show the commit history of a repository with author, date and subject for each commit. Supports filtering by path, author and date range.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "repo": { "type": "string", "description": "Path to the repository root." },
+            "maxCount": { "type": "integer", "description": "Maximum number of commits to return.", "minimum": 1, "maximum": 1000, "default": 20 },
+            "since": { "type": "string", "description": "Only commits after this date, in ISO 8601." },
+            "until": { "type": "string", "description": "Only commits before this date, in ISO 8601." },
+            "author": { "type": "string", "description": "Filter commits by author." },
+            "path": { "type": "string", "description": "Only commits touching this path." }
+          },
+          "required": ["repo"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "git_branch_create",
+        "description": "Create a new branch from a starting point and optionally check it out immediately.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "repo": { "type": "string", "description": "Path to the repository root." },
+            "name": { "type": "string", "description": "Name of the new branch." },
+            "startPoint": { "type": "string", "description": "Commit, branch or tag to branch from.", "default": "HEAD" },
+            "checkout": { "type": "boolean", "description": "Switch to the new branch.", "default": true }
+          },
+          "required": ["repo", "name"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "github_create_pull_request",
+        "description": "Open a pull request on GitHub from a head branch into a base branch, with a title, body, reviewers and labels.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "description": "Repository owner or organisation." },
+            "repo": { "type": "string", "description": "Repository name." },
+            "title": { "type": "string", "description": "Pull request title." },
+            "body": { "type": "string", "description": "Pull request description in Markdown." },
+            "head": { "type": "string", "description": "Branch containing the changes." },
+            "base": { "type": "string", "description": "Branch the changes should be merged into.", "default": "main" },
+            "draft": { "type": "boolean", "description": "Open the pull request as a draft.", "default": false },
+            "reviewers": { "type": "array", "description": "GitHub usernames to request a review from.", "items": { "type": "string" } },
+            "labels": { "type": "array", "description": "Labels to apply.", "items": { "type": "string" } }
+          },
+          "required": ["owner", "repo", "title", "head"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "github_list_issues",
+        "description": "List issues in a GitHub repository, filtered by state, labels, assignee and milestone, ordered by creation or update time.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "description": "Repository owner or organisation." },
+            "repo": { "type": "string", "description": "Repository name." },
+            "state": { "type": "string", "description": "Issue state filter.", "enum": ["open", "closed", "all"], "default": "open" },
+            "labels": { "type": "array", "description": "Only issues carrying all of these labels.", "items": { "type": "string" } },
+            "assignee": { "type": "string", "description": "Filter by assignee login." },
+            "sort": { "type": "string", "description": "Sort field.", "enum": ["created", "updated", "comments"], "default": "created" },
+            "perPage": { "type": "integer", "description": "Results per page.", "minimum": 1, "maximum": 100, "default": 30 }
+          },
+          "required": ["owner", "repo"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "github_create_issue_comment",
+        "description": "Add a comment to an existing GitHub issue or pull request thread.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "description": "Repository owner or organisation." },
+            "repo": { "type": "string", "description": "Repository name." },
+            "issueNumber": { "type": "integer", "description": "Issue or pull request number.", "minimum": 1 },
+            "body": { "type": "string", "description": "Comment body in Markdown." }
+          },
+          "required": ["owner", "repo", "issueNumber", "body"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "github_merge_pull_request",
+        "description": "Merge an open pull request using the merge, squash or rebase strategy, optionally deleting the head branch afterwards.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "description": "Repository owner or organisation." },
+            "repo": { "type": "string", "description": "Repository name." },
+            "pullNumber": { "type": "integer", "description": "Pull request number.", "minimum": 1 },
+            "method": { "type": "string", "description": "Merge strategy.", "enum": ["merge", "squash", "rebase"], "default": "squash" },
+            "commitTitle": { "type": "string", "description": "Override the merge commit title." },
+            "deleteBranch": { "type": "boolean", "description": "Delete the head branch after merging.", "default": false }
+          },
+          "required": ["owner", "repo", "pullNumber"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "postgres_query",
+        "description": "Run a read-only SQL query against the configured PostgreSQL database and return the rows as structured JSON. Statements that modify data are rejected.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sql": { "type": "string", "description": "SQL SELECT statement to execute." },
+            "params": { "type": "array", "description": "Positional bind parameters for the statement.", "items": {} },
+            "maxRows": { "type": "integer", "description": "Maximum number of rows to return.", "minimum": 1, "maximum": 10000, "default": 500 },
+            "timeoutMs": { "type": "integer", "description": "Statement timeout in milliseconds.", "minimum": 100, "maximum": 60000, "default": 5000 }
+          },
+          "required": ["sql"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "postgres_list_tables",
+        "description": "List the tables visible in the configured PostgreSQL database, including their schema, estimated row count and total size on disk.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "schema": { "type": "string", "description": "Restrict the listing to a single schema.", "default": "public" },
+            "includeViews": { "type": "boolean", "description": "Include views and materialised views.", "default": false },
+            "includeSystem": { "type": "boolean", "description": "Include system catalogs.", "default": false }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "postgres_describe_table",
+        "description": "Describe the columns, indexes, constraints and foreign keys of a PostgreSQL table.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table": { "type": "string", "description": "Table name, optionally schema qualified." },
+            "includeIndexes": { "type": "boolean", "description": "Include index definitions.", "default": true },
+            "includeConstraints": { "type": "boolean", "description": "Include check and foreign key constraints.", "default": true }
+          },
+          "required": ["table"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "slack_post_message",
+        "description": "Post a message to a Slack channel or thread. Supports Block Kit payloads, thread replies and link unfurling controls.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "channel": { "type": "string", "description": "Channel ID or name such as C0123ABCD or #general." },
+            "text": { "type": "string", "description": "Fallback text used in notifications." },
+            "blocks": { "type": "array", "description": "Block Kit blocks describing the rich message layout.", "items": { "type": "object" } },
+            "threadTs": { "type": "string", "description": "Timestamp of the parent message when replying in a thread." },
+            "unfurlLinks": { "type": "boolean", "description": "Expand link previews.", "default": true }
+          },
+          "required": ["channel", "text"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "slack_list_channels",
+        "description": "List the Slack channels the bot can see, filtered by type and archival state, with pagination support.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "types": { "type": "array", "description": "Channel types to include.", "items": { "type": "string", "enum": ["public_channel", "private_channel", "mpim", "im"] } },
+            "excludeArchived": { "type": "boolean", "description": "Skip archived channels.", "default": true },
+            "limit": { "type": "integer", "description": "Maximum number of channels to return.", "minimum": 1, "maximum": 1000, "default": 100 },
+            "cursor": { "type": "string", "description": "Pagination cursor returned by a previous call." }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "slack_search_messages",
+        "description": "Search the Slack workspace history for messages matching a query, with optional channel and author filters.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query using Slack search syntax." },
+            "channel": { "type": "string", "description": "Restrict the search to a channel." },
+            "from": { "type": "string", "description": "Restrict the search to messages from this user." },
+            "count": { "type": "integer", "description": "Number of results to return.", "minimum": 1, "maximum": 100, "default": 20 },
+            "sort": { "type": "string", "description": "Result ordering.", "enum": ["score", "timestamp"], "default": "score" }
+          },
+          "required": ["query"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "browser_navigate",
+        "description": "Navigate the managed headless browser to a URL and wait until the requested load state is reached.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "url": { "type": "string", "description": "Absolute URL to open." },
+            "waitUntil": { "type": "string", "description": "Load state to wait for.", "enum": ["load", "domcontentloaded", "networkidle"], "default": "load" },
+            "timeoutMs": { "type": "integer", "description": "Navigation timeout in milliseconds.", "minimum": 1000, "maximum": 120000, "default": 30000 },
+            "referer": { "type": "string", "description": "Referer header to send with the navigation." }
+          },
+          "required": ["url"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "browser_screenshot",
+        "description": "Capture a screenshot of the current page or of a single element, returned as a base64 encoded PNG or JPEG image.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "selector": { "type": "string", "description": "CSS selector of the element to capture. Omit for the whole page." },
+            "fullPage": { "type": "boolean", "description": "Capture the full scrollable page.", "default": false },
+            "format": { "type": "string", "description": "Image format.", "enum": ["png", "jpeg"], "default": "png" },
+            "quality": { "type": "integer", "description": "JPEG quality between 1 and 100.", "minimum": 1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "browser_click",
+        "description": "Click an element identified by a CSS selector, scrolling it into view first and waiting for it to become actionable.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "selector": { "type": "string", "description": "CSS selector of the element to click." },
+            "button": { "type": "string", "description": "Mouse button to use.", "enum": ["left", "right", "middle"], "default": "left" },
+            "clickCount": { "type": "integer", "description": "Number of consecutive clicks.", "minimum": 1, "maximum": 3, "default": 1 },
+            "timeoutMs": { "type": "integer", "description": "How long to wait for the element.", "minimum": 100, "maximum": 60000, "default": 5000 }
+          },
+          "required": ["selector"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "http_request",
+        "description": "Perform an arbitrary HTTP request with full control over method, headers, body and redirect handling, returning status, headers and body.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "url": { "type": "string", "description": "Absolute request URL." },
+            "method": { "type": "string", "description": "HTTP method.", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"], "default": "GET" },
+            "headers": { "type": "object", "description": "Request headers as a flat string map.", "additionalProperties": { "type": "string" } },
+            "body": { "type": "string", "description": "Raw request body." },
+            "followRedirects": { "type": "boolean", "description": "Follow 3xx redirects.", "default": true },
+            "timeoutMs": { "type": "integer", "description": "Request timeout in milliseconds.", "minimum": 100, "maximum": 120000, "default": 30000 }
+          },
+          "required": ["url"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "vector_search",
+        "description": "Search an embedded document collection for the passages most similar to a query, returning ranked chunks with their similarity scores and metadata.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "collection": { "type": "string", "description": "Name of the collection to search." },
+            "query": { "type": "string", "description": "Natural language query." },
+            "topK": { "type": "integer", "description": "Number of chunks to return.", "minimum": 1, "maximum": 100, "default": 8 },
+            "filter": { "type": "object", "description": "Metadata filter applied before ranking." },
+            "minScore": { "type": "number", "description": "Discard results below this similarity score.", "minimum": 0, "maximum": 1 }
+          },
+          "required": ["collection", "query"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "calendar_create_event",
+        "description": "Create a calendar event with a title, time range, attendees, location and reminder settings, returning the created event identifier.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "calendarId": { "type": "string", "description": "Calendar to create the event in.", "default": "primary" },
+            "title": { "type": "string", "description": "Event title." },
+            "start": { "type": "string", "description": "Start time in RFC 3339 format." },
+            "end": { "type": "string", "description": "End time in RFC 3339 format." },
+            "attendees": { "type": "array", "description": "Attendee email addresses.", "items": { "type": "string" } },
+            "location": { "type": "string", "description": "Physical or virtual location." },
+            "reminderMinutes": { "type": "integer", "description": "Minutes before the event to fire a reminder.", "minimum": 0, "maximum": 40320 }
+          },
+          "required": ["title", "start", "end"],
+          "additionalProperties": false
+        }
+      }
+    ]
+  }
+}
